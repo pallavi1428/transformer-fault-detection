@@ -1,98 +1,130 @@
-import pandas as pd
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report, accuracy_score
-from sklearn.preprocessing import StandardScaler
-import joblib
+import pandas as pd
 
 # Set random seed for reproducibility
 np.random.seed(42)
 
-# Generate synthetic data
-n_samples = 1000
+# Number of total samples
+N = 20000   # you can increase to 50,000 or more
 
-data = {
-    'voltage_primary': [],
-    'voltage_secondary': [],
-    'current_primary': [],
-    'current_secondary': [], 
-    'active_power': [],
-    'reactive_power': [],
-    'temperature': [],
-    'thd_voltage': [],
-    'thd_current': [],
-    'power_factor': [],
-    'frequency': [],
-    'fault_type': []  # 0=Normal, 1=Overheating, 2=Winding Fault, 3=Insulation Degradation
+# Fault classes (balanced dataset)
+fault_classes = {
+    0: "Normal",
+    1: "Overheating",
+    2: "Winding Fault",
+    3: "Insulation Degradation",
+    4: "Core Fault",
+    5: "Partial Discharge"
 }
 
-for i in range(n_samples):
-    # 70% Normal operation
-    if i < 700:
-        data['voltage_primary'].append(np.random.normal(11000, 100))    # 11kV ± 100V
-        data['voltage_secondary'].append(np.random.normal(433, 10))     # 433V ± 10V
-        data['current_primary'].append(np.random.normal(50, 5))         # 50A ± 5A
-        data['current_secondary'].append(np.random.normal(1200, 100))   # 1200A ± 100A
-        data['active_power'].append(np.random.normal(800, 50))          # 800kW ± 50kW
-        data['reactive_power'].append(np.random.normal(200, 30))        # 200kVAr ± 30kVAr
-        data['temperature'].append(np.random.normal(65, 5))             # 65°C ± 5°C
-        data['thd_voltage'].append(np.random.normal(1.5, 0.3))          # 1.5% THD ± 0.3%
-        data['thd_current'].append(np.random.normal(2.0, 0.5))          # 2.0% THD ± 0.5%
-        data['power_factor'].append(np.random.normal(0.95, 0.03))       # 0.95 ± 0.03
-        data['frequency'].append(np.random.normal(50, 0.1))             # 50Hz ± 0.1Hz
-        data['fault_type'].append(0)
-    
-    # 10% Overheating (Class 1)
-    elif i < 800:
-        data['voltage_primary'].append(np.random.normal(10900, 150))
-        data['voltage_secondary'].append(np.random.normal(428, 15))
-        data['current_primary'].append(np.random.normal(48, 6))
-        data['current_secondary'].append(np.random.normal(1180, 120))
-        data['active_power'].append(np.random.normal(780, 70))
-        data['reactive_power'].append(np.random.normal(220, 40))
-        data['temperature'].append(np.random.normal(85, 8))             # High temperature!
-        data['thd_voltage'].append(np.random.normal(2.0, 0.5))
-        data['thd_current'].append(np.random.normal(3.5, 1.0))          # Higher THD
-        data['power_factor'].append(np.random.normal(0.92, 0.05))
-        data['frequency'].append(np.random.normal(49.9, 0.2))
-        data['fault_type'].append(1)
-    
-    # 10% Winding Fault (Class 2)  
-    elif i < 900:
-        data['voltage_primary'].append(np.random.normal(10700, 200))    # Voltage drop
-        data['voltage_secondary'].append(np.random.normal(420, 20))     # Voltage drop
-        data['current_primary'].append(np.random.normal(55, 8))         # Current increase
-        data['current_secondary'].append(np.random.normal(1300, 150))   # Current increase
-        data['active_power'].append(np.random.normal(750, 80))
-        data['reactive_power'].append(np.random.normal(250, 50))        # Higher reactive power
-        data['temperature'].append(np.random.normal(75, 10))
-        data['thd_voltage'].append(np.random.normal(4.0, 1.0))          # Very high THD
-        data['thd_current'].append(np.random.normal(6.0, 1.5))          # Very high THD
-        data['power_factor'].append(np.random.normal(0.85, 0.08))       # Poor power factor
-        data['frequency'].append(np.random.normal(49.8, 0.3))
-        data['fault_type'].append(2)
-    
-    # 10% Insulation Degradation (Class 3)
-    else:
-        data['voltage_primary'].append(np.random.normal(10800, 120))
-        data['voltage_secondary'].append(np.random.normal(430, 12))
-        data['current_primary'].append(np.random.normal(52, 6))
-        data['current_secondary'].append(np.random.normal(1250, 110))
-        data['active_power'].append(np.random.normal(820, 60))
-        data['reactive_power'].append(np.random.normal(280, 45))        # High reactive power
-        data['temperature'].append(np.random.normal(70, 6))
-        data['thd_voltage'].append(np.random.normal(3.0, 0.8))          # Elevated THD
-        data['thd_current'].append(np.random.normal(4.5, 1.2))          # Elevated THD
-        data['power_factor'].append(np.random.normal(0.88, 0.06))       # Reduced power factor
-        data['frequency'].append(np.random.normal(49.9, 0.15))
-        data['fault_type'].append(3)
+# Proportion of each fault type
+class_distribution = {
+    0: 0.60,   # 60% Normal
+    1: 0.10,   # 10% Overheating
+    2: 0.10,   # 10% Winding Fault
+    3: 0.07,   # 7% Insulation Degradation
+    4: 0.07,   # 7% Core Fault
+    5: 0.06    # 6% Partial Discharge
+}
+
+# Calculate number of samples per class
+samples_per_class = {cls: int(N * frac) for cls, frac in class_distribution.items()}
+
+# Helper function: add noise
+def noisy(val, scale=0.02):
+    return val * (1 + np.random.normal(0, scale))
+
+# Dataset rows
+data = []
+
+for fault, n_samples in samples_per_class.items():
+    for _ in range(n_samples):
+        
+        # Base electrical ranges (Normal)
+        voltage_primary = noisy(np.random.normal(11000, 80))    # kV side
+        voltage_secondary = noisy(np.random.normal(433, 8))     # LV side
+        current_primary = noisy(np.random.normal(50, 5))
+        current_secondary = noisy(np.random.normal(1200, 100))
+        frequency = noisy(50, 0.05)
+        power_factor = np.clip(np.random.normal(0.95, 0.02), 0.7, 1.0)
+        
+        # Power calculations
+        active_power = voltage_secondary * current_secondary * power_factor / 1000
+        reactive_power = voltage_secondary * current_secondary * np.sqrt(1 - power_factor**2) / 1000
+        apparent_power = voltage_secondary * current_secondary / 1000
+        
+        # Environmental
+        temperature = np.random.normal(65, 5)
+        humidity = np.random.uniform(25, 70)
+        vibration = np.random.uniform(0.05, 0.5)
+        
+        # Harmonics baseline
+        thd_voltage = np.random.normal(1.5, 0.3)
+        thd_current = np.random.normal(2.0, 0.5)
+        
+        # Dissolved Gas baseline
+        h2 = np.random.uniform(10, 40)
+        ch4 = np.random.uniform(1, 8)
+        c2h2 = np.random.uniform(0.1, 1.5)
+        
+        # -------- Inject Fault Conditions --------
+        if fault == 1:  # Overheating
+            temperature += np.random.uniform(15, 30)
+            thd_current += np.random.uniform(1, 2)
+        
+        elif fault == 2:  # Winding Fault
+            current_primary += np.random.uniform(20, 40)
+            current_secondary += np.random.uniform(200, 400)
+            thd_voltage += np.random.uniform(2, 4)
+            thd_current += np.random.uniform(3, 6)
+            vibration += np.random.uniform(0.5, 1.5)
+            power_factor -= np.random.uniform(0.05, 0.15)
+        
+        elif fault == 3:  # Insulation Degradation
+            thd_voltage += np.random.uniform(1.5, 3)
+            thd_current += np.random.uniform(2, 4)
+            power_factor -= np.random.uniform(0.05, 0.1)
+            reactive_power += np.random.uniform(50, 100)
+        
+        elif fault == 4:  # Core Fault
+            h2 += np.random.uniform(50, 150)
+            ch4 += np.random.uniform(20, 60)
+            power_factor -= np.random.uniform(0.1, 0.2)
+        
+        elif fault == 5:  # Partial Discharge
+            c2h2 += np.random.uniform(10, 40)
+            thd_voltage += np.random.uniform(3, 7)
+            thd_current += np.random.uniform(3, 7)
+            vibration += np.random.uniform(0.8, 2.0)
+        
+        # Append one row
+        data.append([
+            voltage_primary, voltage_secondary,
+            current_primary, current_secondary,
+            frequency, active_power, reactive_power, apparent_power,
+            power_factor, temperature, humidity, vibration,
+            thd_voltage, thd_current,
+            h2, ch4, c2h2,
+            fault
+        ])
 
 # Create DataFrame
-df = pd.DataFrame(data)
-print("Dataset created!")
-print(f"Dataset shape: {df.shape}")
-print("\nFault type distribution:")
-print(df['fault_type'].value_counts().sort_index())
-print("\nFirst 5 rows:")
+columns = [
+    "VoltagePrimary_V", "VoltageSecondary_V",
+    "CurrentPrimary_A", "CurrentSecondary_A",
+    "Frequency_Hz", "ActivePower_kW", "ReactivePower_kVAr", "ApparentPower_kVA",
+    "PowerFactor", "Temperature_C", "Humidity_pct", "Vibration_g",
+    "THD_Voltage_pct", "THD_Current_pct",
+    "H2_ppm", "CH4_ppm", "C2H2_ppm",
+    "FaultClass"
+]
+
+df = pd.DataFrame(data, columns=columns)
+
+# Save to CSV
+df.to_csv("huge_synthetic_transformer_data.csv", index=False)
+
+print("✅ Huge synthetic dataset generated!")
+print("Shape:", df.shape)
+print(df['FaultClass'].value_counts())
 print(df.head())
