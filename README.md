@@ -1,12 +1,8 @@
-To add your dashboard image below the header in the README, you can use this updated section:
-
 # ⚡ Transformer Fault Detection & Monitoring System
 
 A real-time AI-powered dashboard for detecting and monitoring faults in electrical transformers using machine learning and live data simulation.
 
 ![Status](https://img.shields.io/badge/Status-Live%20Demo-brightgreen) ![ML Model](https://img.shields.io/badge/ML-Accuracy%2095%25-success) ![React](https://img.shields.io/badge/Frontend-React%2FTailwind-blue) ![Backend](https://img.shields.io/badge/Backend-FastAPI%2FPython-orange)
-
-## 📸 Dashboard Preview
 
 ![Transformer Fault Detection Dashboard](./transformer-dashboard/public/dashboard.png)
 
@@ -14,32 +10,6 @@ A real-time AI-powered dashboard for detecting and monitoring faults in electric
 
 ---
 
-## 🚀 Features
-
-### 🤖 AI-Powered Detection
-- **6 Fault Types Detected**: Normal, Overheating, Winding Fault, Insulation Degradation, Core Fault, Partial Discharge
-- **95%+ Accuracy** with ensemble machine learning models
-- **Real-time predictions** every 3 seconds
-- **Confidence scoring** for each prediction
-
-### 📊 Live Dashboard
-- **Animated gauges** for key parameters (Voltage, Temperature, Current, Power Factor)
-- **Live trend charts** showing historical data
-- **Gas analysis** visualization (H₂, CH₄, C₂H₂)
-- **Feature importance** indicators
-- **Prediction history** with timestamps
-
-## 🏗️ Architecture
-
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   React Frontend│◄──►│  FastAPI Backend │◄──►│   ML Model      │
-│                 │    │                  │    │                 │
-│  - Live Charts  │    │  - Data Simulation│    │  - Random Forest│
-│  - Animated UI  │    │  - API Endpoints │    │  - XGBoost      │
-│  - Real-time    │    │  - Preprocessing  │    │  - LightGBM     │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-```
 ## 🎯 Overview
 
 This project provides a comprehensive solution for transformer health monitoring by combining:
@@ -260,11 +230,9 @@ We welcome contributions! Please feel free to submit pull requests or open issue
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## 🙏 Contributers
 
-- **Power System Research** teams for transformer fault patterns
-- **Machine Learning** community for model architectures
-- **Open Source** projects that made this possible
+-Dhruvi, Harshita, Muskan, Pallavi and Ritika
 
 ---
 
